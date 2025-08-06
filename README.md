@@ -41,7 +41,7 @@ This ensures the AI’s output is both funny and relevant to the person’s actu
 We require the AI to return a predictable JSON format so the frontend knows exactly how to display the roast and compliment.
 
 Example:
-``` json
+```json
 {
   "roast": "You look like you own more protein powder than actual groceries.",
   "compliment": "At least you’re dedicated… to something."
