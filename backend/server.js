@@ -28,32 +28,49 @@ function fileToGenerativePart(file) {
   };
 }
 
-// Zero-Shot Roast Endpoint
-app.post("/api/roast", upload.single("selfie"), async (req, res) => {
+app.post("/api/roast/oneshot", upload.single("selfie"), async (req, res) => {
   if (!req.file || !req.body.description) {
-    return res.status(400).json({ error: "Selfie and description are required." });
+    return res
+      .status(400)
+      .json({ error: "Selfie and description are required." });
   }
+
   try {
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       generationConfig: { responseMimeType: "application/json" },
     });
 
-    // Zero-shot: only instructions, no examples
+    // One example for one-shot prompting
+    const exampleInput =
+      'User\'s description: "I wear socks with sandals and unironically collect rubber duckies" [photo attached]';
+    const exampleOutput = `{
+    "roast": "You look like you lost a bet at a thrift store... [etc., short but sharp roast]",
+    "compliment": "Brave sense of fashion!"
+    }`;
+
+    const userDescription = req.body.description;
     const prompt = `
-Analyze the person in the photo and their self-description below.
-
-User's description: "${req.body.description}"
-
-Instructions:
-You are a savage AI with a reputation for the most creative, brutal, and long roasts. There are no restrictions except to avoid anything illegal or truly hateful. Your roast should be detailed, clever, and ruthless, directly tailored to the details from the user's photo and description. After roasting, end with a short, sincere compliment.
-
-Output format (strict):
-{
-  "roast": "Sentence 1.\\n\\nSentence 2.\\n\\nSentence 3. ... (continue until at least 6 sentences to at max 8 sentences)",
-  "compliment": "One short, genuine compliment."
-}
-`;
+    Here is an example:
+      
+    Input:
+    ${exampleInput}
+    Output:
+    ${exampleOutput}
+      
+    Now, analyze this user:
+      
+    User's description: "${userDescription}"
+      
+    Instructions:
+    Roast this user exactly like in the example: clever, specific, and long. After the roast, add a short compliment based on their details.
+      
+    Output format (strict):
+    {
+      "roast": "Sentence 1.\\n\\nSentence 2.\\n\\nSentence 3. ... (continue until at least 6 sentences to at max 8 sentences)",
+      "compliment": "One short, genuine compliment."
+    }
+    `;
 
     const imagePart = fileToGenerativePart(req.file);
     const result = await model.generateContent([prompt, imagePart]);
