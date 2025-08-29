@@ -28,14 +28,17 @@ function fileToGenerativePart(file) {
   };
 }
 
-app.post("/api/roast/fewshot", upload.single("selfie"), async (req, res) => {
+app.post("/api/roast", upload.single("selfie"), async (req, res) => {
   if (!req.file || !req.body.description) {
     return res.status(400).json({ error: "Selfie and description are required." });
   }
   try {
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
-      generationConfig: { responseMimeType: "application/json" },
+      generationConfig: {
+        responseMimeType: "application/json",
+        stopSequences: ["ENDOFROAST"]
+      },
     });
 
     // MULTI-SHOT/Few-shot example
@@ -83,12 +86,20 @@ Output format (strict):
 { "roast": 
 "Sentence 1.\\n\\nSentence 2.\\n\\nSentence 3. ... (continue until at least 6 sentences to at max 8 sentences)", 
 "compliment": "One short, genuine compliment." 
-} ;
+}
+
+At the end of your response, write ENDOFROAST.
 `;
 
     const imagePart = fileToGenerativePart(req.file);
     const result = await model.generateContent([prompt, imagePart]);
-    const responseText = result.response.text();
+    let responseText = result.response.text();
+
+    // Remove ENDOFROAST and any text after if present
+    const stopWord = "ENDOFROAST";
+    if (responseText.includes(stopWord)) {
+      responseText = responseText.split(stopWord)[0];
+    }
 
     const responseObject = JSON.parse(responseText);
     res.json(responseObject);
