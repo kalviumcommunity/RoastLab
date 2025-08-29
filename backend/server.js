@@ -79,11 +79,11 @@ User's description: "${userDescription}"
 Instructions:
 Roast this user in the same detailed, humorous, roast+compliment JSON style as above. Tailor every line to their photo and description.
 
-Output format (strict): 
-{ "roast": 
-"Sentence 1.\\n\\nSentence 2.\\n\\nSentence 3. ... (continue until at least 6 sentences to at max 8 sentences)", 
-"compliment": "One short, genuine compliment." 
-} ;
+Output JSON:
+{
+  "roast": "...",
+  "compliment": "..."
+}
 `;
 
     const imagePart = fileToGenerativePart(req.file);
