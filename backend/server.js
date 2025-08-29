@@ -28,57 +28,69 @@ function fileToGenerativePart(file) {
   };
 }
 
-app.post("/api/roast/oneshot", upload.single("selfie"), async (req, res) => {
+app.post("/api/roast/fewshot", upload.single("selfie"), async (req, res) => {
   if (!req.file || !req.body.description) {
-    return res
-      .status(400)
-      .json({ error: "Selfie and description are required." });
+    return res.status(400).json({ error: "Selfie and description are required." });
   }
-
   try {
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       generationConfig: { responseMimeType: "application/json" },
     });
 
-    // One example for one-shot prompting
-    const exampleInput =
-      'User\'s description: "I wear socks with sandals and unironically collect rubber duckies" [photo attached]';
-    const exampleOutput = `{
-    "roast": "You look like you lost a bet at a thrift store... [etc., short but sharp roast]",
-    "compliment": "Brave sense of fashion!"
-    }`;
-
+    // MULTI-SHOT/Few-shot example
+    const examples = [
+      {
+        input: 'User\'s description: "I wear socks with sandals and unironically collect rubber duckies" [photo attached]',
+        output: `{
+  "roast": "You look like you lost a bet at a thrift store and just kept doubling down. The duckies are lucky to have you, because you’re the only person who could make them look cool by comparison. If there’s a contest for bold choices, you’re absolutely attending it right now, socks and all. Your commitment to anti-fashion deserves an award no one wants.",
+  "compliment": "Brave sense of fashion!"
+}`,
+      },
+      {
+        input: 'User\'s description: "I’m a gym bro who still can’t do a single pullup" [photo attached]',
+        output: `{
+  "roast": "You have more shaker bottles than actual muscles, and somehow the dumbbells are heavier than your motivation. The only thing getting shredded is your ego every time you see the pullup bar. Even your protein powder is starting to question its life choices.",
+  "compliment": "Consistent dedication pays off!"
+}`,
+      },
+      {
+        input: 'User\'s description: "Aspiring comedian, lifelong introvert, wears cat t-shirts to formal events" [photo attached]',
+        output: `{
+  "roast": "Nothing says ‘life of the party’ like hiding in the bathroom and practicing knock-knock jokes to your reflection. Your tuxedo cat shirt? Legendary—especially at grandma’s funeral. The only thing more awkward than your punchlines is the silence that follows them.",
+  "compliment": "Your individuality is inspiring."
+}`
+      }
+    ];
+    
     const userDescription = req.body.description;
     const prompt = `
-    Here is an example:
-      
-    Input:
-    ${exampleInput}
-    Output:
-    ${exampleOutput}
-      
-    Now, analyze this user:
-      
-    User's description: "${userDescription}"
-      
-    Instructions:
-    Roast this user exactly like in the example: clever, specific, and long. After the roast, add a short compliment based on their details.
-      
-    Output format (strict):
-    {
-      "roast": "Sentence 1.\\n\\nSentence 2.\\n\\nSentence 3. ... (continue until at least 6 sentences to at max 8 sentences)",
-      "compliment": "One short, genuine compliment."
-    }
-    `;
+Below are several examples:
+${examples.map(e => `
+Input:
+${e.input}
+Output:
+${e.output}
+`).join('\n')}
+Now, analyze this user:
+
+User's description: "${userDescription}"
+
+Instructions:
+Roast this user in the same detailed, humorous, roast+compliment JSON style as above. Tailor every line to their photo and description.
+
+Output JSON:
+{
+  "roast": "...",
+  "compliment": "..."
+}
+`;
 
     const imagePart = fileToGenerativePart(req.file);
     const result = await model.generateContent([prompt, imagePart]);
     const responseText = result.response.text();
 
-    // Parse the structured output
     const responseObject = JSON.parse(responseText);
-
     res.json(responseObject);
   } catch (error) {
     console.error("Error generating roast:", error);
