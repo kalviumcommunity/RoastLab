@@ -32,12 +32,23 @@ app.post("/api/roast", upload.single("selfie"), async (req, res) => {
   if (!req.file || !req.body.description) {
     return res.status(400).json({ error: "Selfie and description are required." });
   }
+
+  // Read temperature (default 0.7)
+  let temperature = 0.7;
+  if (req.body.temperature) {
+    const parsedTemp = parseFloat(req.body.temperature);
+    if (!isNaN(parsedTemp) && parsedTemp >= 0 && parsedTemp <= 1) {
+      temperature = parsedTemp;
+    }
+  }
+
   try {
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       generationConfig: {
         responseMimeType: "application/json",
-        stopSequences: ["ENDOFROAST"]
+        stopSequences: ["ENDOFROAST"],
+        temperature, // Apply the temperature here!
       },
     });
 
